@@ -59,9 +59,6 @@ func Mashal(c Config,file string)(jsonstr []byte,err error){
 	return mashal(c,file)
 }
 
-/*
-
-*/
 func NewConfig()(Config){
 	return &defaultConfig{}
 }
