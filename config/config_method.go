@@ -2,21 +2,106 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
-	"io/ioutil"
+	"fmt"
+	"strings"
 	yaml "gopkg.in/yaml.v3"
 )
 
-func readFile(file string) ([]byte,error){
-	cfdata, err := ioutil.ReadFile(file)
-	return cfdata,err
-} 
+
+
+func (dc *defaultConfig)loadini(file string)(jsonbyte []byte,err error){
+	jsonbyte,err = readFile(file)
+	if err != nil {
+		return 
+	}
+	return dc.parseini(jsonbyte)
+}
+
+func (dc *defaultConfig)parseini(configdatas []byte)(jsonByte []byte,err error){
+	configstr := string(configdatas)
+	lineslice := strings.Split(configstr,"\n")	
+	dcmap := *dc
+	var section string 	
+	
+	for i,linestr := range lineslice {
+		
+		line := strings.Trim(linestr," ") //
+		
+		if line == "" { //if this line is line. 
+			section = line 
+			continue
+		}
+		/*
+		if this line has prefix "#" or ",", 
+		this is a comment line.
+		*/
+		if line[0] == '#' || line[0] == ',' { //if this line has prefix "#" or "," this is a comment line
+			continue
+		}		
+		
+		/*
+		delete the comment string after the item
+		*/
+		line = strings.Split(line,"#")[0]
+		/*
+		if there is some space bwteen comment string and item,
+		trim those space.
+		*/ 
+		line = strings.Trim(line," ")
+		
+		/*
+		if this line has prefix "[",
+		*/
+		if line[0] == '[' {
+		    section,err = parseSection(line)
+			if err != nil{
+				err = fmt.Errorf("the %d line %v",i,err)
+				return 
+			}
+			continue			 
+		}
+        /*
+		if this line is just a item
+		*/
+		k,v,perr := parseItem(line)
+		if perr != nil {
+		   err = fmt.Errorf("the %d line %v",i,perr)
+		   return
+		}
+		
+		if section != "" { // if section is not ""			
+			_,ok := dcmap[section] //check section include map
+			
+			if !ok {  //if section not include map
+				item := map[string]interface{}{}
+				item[k] = v
+				dcmap[section] = item
+				continue
+			}
+			
+			val,ok := dcmap[section].(map[string]interface{})
+		    if ok {
+				val[k] = v
+				dcmap[section] = val
+				continue
+			}
+
+		}
+		dcmap[k] = v		
+	}
+    return dc.parseJosn()
+}
+
+
+func (dc *defaultConfig)Loadini(file string)(jsonByte []byte,err error){
+	return dc.loadini(file)
+}
 
 func (dc *defaultConfig)parseJosn()([]byte,error){
 	return json.Marshal(dc)
 }
 
-func (dc *defaultConfig)load(file string)(jsonByte []byte,err error){
+func (dc *defaultConfig)loadyaml(file string)(jsonByte []byte,err error){
 	jsonByte,err = readFile(file)
 	if err != nil {
 		return
@@ -28,44 +113,9 @@ func (dc *defaultConfig)load(file string)(jsonByte []byte,err error){
 	return dc.parseJosn()
 }
 
-func (dc *defaultConfig)Load(file string)(jsonByte []byte,err error){
-	return dc.load(file)
+func (dc *defaultConfig)Loadyaml(file string)(jsonByte []byte,err error){
+	return dc.loadyaml(file)
 }
 
-/*
-how to mashel config
-if you define a type of data that have method Load,but the method Load has not details
-just return []byte and error
-*/
-func mashal(c Config,file string)(jsonstr []byte,err error){
-	if c == nil {
-		err = errors.New("the interface config is nil")
-		return 
-	}
-	if file == "" {
-		err = errors.New("the config file is nil")
-		return
-	}
-	if jsonstr,err = c.Load(file);len(jsonstr)==0 && err == nil{ //if you 
-		dc := &defaultConfig{}
-		c = dc
-		return c.Load(file)
-	}
-	return 
-}
 
-/*
-mashal api has two parameters the Config interface and a yaml file
-read file and return the data of the file in josn.  
-*/
-func Mashal(c Config,file string)(jsonstr []byte,err error){
-	return mashal(c,file)
-}
-
-/*
-new default config interface
-*/
-func NewConfig()(Config){
-	return &defaultConfig{}
-}
 
