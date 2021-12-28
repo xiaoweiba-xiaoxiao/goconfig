@@ -1,7 +1,11 @@
 package config
 
 import (
+	"io"
+	"os"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestConfig(t *testing.T){
@@ -29,4 +33,21 @@ func TestDefaultIni(t *testing.T){
 		return
 	}
 	t.Log(string(jsondata))
+}
+
+func TestManyConfig(t *testing.T){
+	f,err := os.Open("./config.yaml")
+	if err != nil {
+		t.Log(err)
+		return
+	}
+	dec := yaml.NewDecoder(f)
+	for {
+		dc := defaultConfig{}
+		err = dec.Decode(dc)
+		if err == io.EOF {
+			break
+		}
+		t.Logf("%#v",dc)
+	}
 }

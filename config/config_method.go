@@ -3,12 +3,16 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"strings"
+
 	yaml "gopkg.in/yaml.v3"
 )
 
-
-
+/*
+the method read the config file return the json byte and error
+*/
 func (dc *defaultConfig)loadini(file string)(jsonbyte []byte,err error){
 	jsonbyte,err = readFile(file)
 	if err != nil {
@@ -17,10 +21,14 @@ func (dc *defaultConfig)loadini(file string)(jsonbyte []byte,err error){
 	return dc.parseini(jsonbyte)
 }
 
+/*
+the pasre the config datas from file ,return json byte and error
+*/
 func (dc *defaultConfig)parseini(configdatas []byte)(jsonByte []byte,err error){
 	configstr := string(configdatas)
-	lineslice := strings.Split(configstr,"\n")	
-	dcmap := *dc
+	lineslice := strings.Split(configstr,"\n")
+	val := *dc	
+	dcmap := defaultConfig{}
 	var section string 	
 	
 	for i,linestr := range lineslice {
@@ -89,6 +97,7 @@ func (dc *defaultConfig)parseini(configdatas []byte)(jsonByte []byte,err error){
 		}
 		dcmap[k] = v		
 	}
+	val["configs"]=dcmap
     return dc.parseJosn()
 }
 
@@ -97,19 +106,42 @@ func (dc *defaultConfig)Loadini(file string)(jsonByte []byte,err error){
 	return dc.loadini(file)
 }
 
+/*pasre dc to json*/
 func (dc *defaultConfig)parseJosn()([]byte,error){
 	return json.Marshal(dc)
 }
 
+/*
+load yaml config
+return json data and error 
+*/
 func (dc *defaultConfig)loadyaml(file string)(jsonByte []byte,err error){
-	jsonByte,err = readFile(file)
+	confile,ok := os.Open(file)
+	err = ok
 	if err != nil {
 		return
 	}
-	err = yaml.Unmarshal(jsonByte,dc)
-	if err != nil {
-		return
+	defer confile.Close()
+	
+	val := *dc	
+	configmaps := []defaultConfig{}	
+	dec := yaml.NewDecoder(confile)
+	
+	for err == nil {//decode yaml file if err != nil
+		cf := defaultConfig{}
+		err = dec.Decode(cf)
+		if err != nil && err != io.EOF {
+			return
+		}
+		if len(cf) != 0 { // if cf has key value append it
+			configmaps =append(configmaps, cf)
+		}				
 	}
+	if len(configmaps) == 1 {
+		val["configs"] = configmaps[0] // pasre one file
+	}else{
+		val["configs"] = configmaps //pasre more than one file
+	}		
 	return dc.parseJosn()
 }
 
@@ -117,5 +149,43 @@ func (dc *defaultConfig)Loadyaml(file string)(jsonByte []byte,err error){
 	return dc.loadyaml(file)
 }
 
+
+func (dcs *defaultSlice)loadyaml(file string)(jsonByte []byte,err error){
+	confile,ok := os.Open(file)
+	err = ok
+	if err != nil {
+		return
+	}
+		
+	dec := yaml.NewDecoder(confile)
+	
+	for err == nil {//decode yaml file if err != nil
+		dc := defaultConfig{}
+		err = dec.Decode(&dc)
+		if err != nil && err != io.EOF {
+			return
+		}
+		if len(dc) != 0 { // if cf has key value append it
+			*dcs =append(*dcs, dc)
+		}				
+	}
+	if len(*dcs) == 1 {
+		dcsvalue := *dcs
+		return dcsvalue[0].parseJosn()
+	} // pasre one file		
+	return dcs.parseJosn()
+}
+
+func (dcs *defaultSlice)Loadini(file string) (jsonByte []byte,err error){
+	return
+}
+
+func (dcs *defaultSlice)parseJosn()(jsonByte []byte,err error){
+	return json.Marshal(dcs)
+}
+
+func (dcs *defaultSlice)Loadyaml(file string)(jsonByte []byte,err error){
+	return dcs.loadyaml(file)
+}
 
 

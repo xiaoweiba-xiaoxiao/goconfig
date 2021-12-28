@@ -80,7 +80,7 @@ func mashal(c Config,file string)(jsonstr []byte,err error){
 	}
 		
 	if strings.HasSuffix(file,".ini") {
-		if jsonstr,err = c.Loadini(file);len(jsonstr)==0 && err == nil{ //if you 
+		if jsonstr,err = c.Loadini(file);len(jsonstr)==0 && err == nil{  
 			dc := &defaultConfig{}
 			c = dc
 		}
@@ -88,9 +88,9 @@ func mashal(c Config,file string)(jsonstr []byte,err error){
 	}
 	
 	if strings.HasSuffix(file,".yaml") || strings.HasSuffix(file,".yml") {
-		if jsonstr,err = c.Loadyaml(file);len(jsonstr)==0 && err == nil{ //if you 
-			dc := &defaultConfig{}
-			c = dc			
+		if jsonstr,err = c.Loadyaml(file);len(jsonstr)==0 && err == nil{  
+			dcs := &defaultConfig{}
+			c = dcs			
 		}
 		return c.Loadyaml(file)
     } 
@@ -113,4 +113,22 @@ new default config interface
 */
 func NewConfig()(Config){
 	return &defaultConfig{}
+}
+
+/*
+just read one file like this
+---
+a:
+---
+b:
+can load 
+*/
+
+func loadyaml(file string)(josnbyte []byte,err error){
+	ds := &defaultSlice{}
+	return ds.Loadyaml(file)
+}
+
+func LoadYaml(file string)(josnbyte []byte,err error){ 
+	return loadyaml(file)	
 }
