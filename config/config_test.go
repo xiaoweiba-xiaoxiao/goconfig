@@ -10,13 +10,13 @@ import (
 
 func TestConfig(t *testing.T){
 	cf := NewConfig()
-	josndata,err := Mashal(cf,"./config.yaml")
+	josndata,err := ConfigLoad(cf,"./config.yaml")
 	if err != nil {
 		t.Error(err)
 		return
 	}
     t.Logf("%s",string(josndata))
-	josndata,err = mashal(cf,"./config.ini")
+	josndata,err = ConfigLoad(cf,"./config.ini")
 	if err != nil {
 		t.Error(err)
 		return

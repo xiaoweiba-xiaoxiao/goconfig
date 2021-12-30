@@ -6,15 +6,33 @@ import (
 	"io"
 	"os"
 	"strings"
-
+	u "github.com/xiaoweiba-xiaoxiao/goconfig/config_util"
 	yaml "gopkg.in/yaml.v3"
 )
+
+
+func (dc *defaultConfig)LoadConfig(file string)(jsonbyte []byte,err error){
+	if file == "" {
+		err = u.Erremptyfile
+		return
+	}
+
+	if strings.HasSuffix(file, ".ini") {
+		return dc.Loadini(file)
+	}
+
+	if strings.HasSuffix(file, ".yaml") || strings.HasSuffix(file, ".yml") {
+		return dc.Loadyaml(file)
+	}
+	err = u.Errstyle
+	return 
+}
 
 /*
 the method read the config file return the json byte and error
 */
 func (dc *defaultConfig) loadini(file string) (jsonbyte []byte, err error) {
-	jsonbyte, err = readFile(file)
+	jsonbyte, err = u.ReadFile(file)
 	if err != nil {
 		return
 	}
@@ -61,7 +79,7 @@ func (dc *defaultConfig) parseini(configdatas []byte) (jsonByte []byte, err erro
 			if this line has prefix "[",
 		*/
 		if line[0] == '[' {
-			section, err = parseSection(line)
+			section, err = u.ParseSection(line)
 			if err != nil {
 				err = fmt.Errorf("the %d line %v", i, err)
 				return
@@ -71,7 +89,7 @@ func (dc *defaultConfig) parseini(configdatas []byte) (jsonByte []byte, err erro
 		/*
 			if this line is just a item
 		*/
-		k, v, perr := parseItem(line)
+		k, v, perr := u.ParseItem(line)
 		if perr != nil {
 			err = fmt.Errorf("the %d line %v", i, perr)
 			return
@@ -132,12 +150,12 @@ func (dc *defaultConfig) loadyaml(file string) (jsonByte []byte, err error) {
 		if err != nil && err != io.EOF {
 			return
 		}
-		if len(cf) != -1 { // if cf has key value append it
+		if len(cf) != 0 { // if cf has key value append it
 			configmaps = append(configmaps, cf)
 		}
 	}
 	if len(configmaps) == 0 {
-		val["configs"] = configmaps[-1] // pasre one file
+		val["configs"] = configmaps[0] // pasre one file
 	} else {
 		val["configs"] = configmaps //pasre more than one file
 	}
@@ -148,7 +166,7 @@ func (dc *defaultConfig) Loadyaml(file string) (jsonByte []byte, err error) {
 	return dc.loadyaml(file)
 }
 
-func (dcs *defaultSlice) loadyaml(file string) (jsonByte []byte, err error) {
+func (dcs *defaultSlice)loadyaml(file string) (jsonByte []byte, err error) {
 	confile, ok := os.Open(file)
 	err = ok
 	if err != nil {

@@ -1,10 +1,9 @@
 package config
 
+
 /*the interface load config yaml file,return json and error*/
 type Config interface {
-	//	Loadyaml(file string) (jsonByte []byte, err error)
 	LoadConfig(file string) (jsonByte []byte, err error)
-	//Loadini(file string) (jsonbyte []byte, err error)
 }
 
 /*
